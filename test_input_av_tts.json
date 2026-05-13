@@ -1,0 +1,13 @@
+{
+  "input": {
+    "image": "data:image/png;base64,REPLACE_WITH_BASE64_IMAGE",
+    "tts_text": "Hello, this is a short Qwen text to speech test.",
+    "prompt": "A character speaks naturally to the camera, subtle head motion, realistic mouth movement, stable framing.",
+    "voice_id": "REPLACE_WITH_QWEN_VOICE_ID",
+    "width": 768,
+    "height": 512,
+    "fps": 24,
+    "seed": 42,
+    "max_duration": 4
+  }
+}
