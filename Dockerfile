@@ -210,7 +210,9 @@ RUN if [ "$MODEL_TYPE" = "z-image-turbo" ]; then \
     fi
 
 # Stage 3: Final image
-FROM base AS final
-
-# Copy models from stage 2 to the final image
-COPY --from=downloader /comfyui/models /comfyui/models
+#
+# Keep final as the downloader filesystem instead of copying /comfyui/models
+# into a fresh base stage. The LTX target bakes roughly 47GB of models; copying
+# that tree into another stage creates a second huge layer and makes RunPod's
+# cache export slow enough to hit the 30 minute build timeout.
+FROM downloader AS final
