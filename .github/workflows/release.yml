@@ -79,13 +79,13 @@ jobs:
       matrix:
         target:
           - base
+          - ltx23-av-tts
           - sdxl
           - sd3
           - flux1-schnell
           - flux1-dev
           - flux1-dev-fp8
           - z-image-turbo
-          - base-cuda12-8-1
 
     steps:
       - name: Checkout

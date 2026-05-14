@@ -60,7 +60,7 @@ jobs:
             *.args.RELEASE_VERSION=${{ env.RELEASE_VERSION }}
             *.args.HUGGINGFACE_ACCESS_TOKEN=${{ env.HUGGINGFACE_ACCESS_TOKEN }}
 
-  build-base-cuda12-8-1:
+  build-ltx23-av-tts:
     runs-on: [blacksmith-8vcpu-ubuntu-2204, linux]
     permissions:
       contents: read
@@ -100,11 +100,11 @@ jobs:
           echo "HUGGINGFACE_ACCESS_TOKEN=${{ secrets.HUGGINGFACE_ACCESS_TOKEN }}" >> $GITHUB_ENV
           echo "RELEASE_VERSION=${{ github.event.inputs.version }}" >> $GITHUB_ENV
 
-      - name: Build and push base-cuda12-8-1 image
+      - name: Build and push ltx23-av-tts image
         uses: docker/bake-action@v2
         with:
           push: true
-          targets: base-cuda12-8-1
+          targets: ltx23-av-tts
           set: |
             *.args.DOCKERHUB_REPO=${{ env.DOCKERHUB_REPO }}
             *.args.DOCKERHUB_IMG=${{ env.DOCKERHUB_IMG }}
@@ -422,7 +422,7 @@ jobs:
     needs:
       [
         build-base,
-        build-base-cuda12-8-1,
+        build-ltx23-av-tts,
         build-sdxl,
         build-sd3,
         build-flux1-schnell,

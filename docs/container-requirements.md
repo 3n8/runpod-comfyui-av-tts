@@ -3,6 +3,13 @@
 This worker is built for RunPod Serverless on NVIDIA GPUs. Do not test video
 generation on the local AMD host.
 
+The deployable image is the `ltx23-av-tts` Docker bake target. It is pinned to
+`nvidia/cuda:12.6.3-cudnn-runtime-ubuntu24.04`, asks ComfyUI for CUDA `12.6`,
+and force-reinstalls PyTorch CUDA 12.6 wheels after ComfyUI installation. The
+Docker build fails if the selected PyTorch wheel reports a CUDA runtime newer
+than 12.6, because RunPod A100 workers may expose host driver capability
+`12060`.
+
 ## Runtime contract
 
 The first supported request mode is AV/TTS:
@@ -32,6 +39,9 @@ that we should keep the image focused.
 ## Required node/runtime pieces
 
 - Current ComfyUI with NVIDIA/PyTorch CUDA support.
+- PyTorch `2.9.1`, torchvision `0.24.1`, and torchaudio `2.9.1` from the
+  official `cu126` wheel index for compatibility with RunPod hosts whose
+  driver reports CUDA capability `12060`.
 - Official Lightricks `ComfyUI-LTXVideo` node pack and requirements.
 - `ComfyUI-VideoHelperSuite` for `VHS_LoadAudio`.
 - `ffmpeg` and `ffprobe` for audio/video IO and duration measurement.

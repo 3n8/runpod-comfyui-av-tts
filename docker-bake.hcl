@@ -28,7 +28,27 @@ variable "ENABLE_PYTORCH_UPGRADE" {
 }
 
 variable "PYTORCH_INDEX_URL" {
-  default = ""
+  default = "https://download.pytorch.org/whl/cu126"
+}
+
+variable "PIN_PYTORCH_CUDA" {
+  default = "true"
+}
+
+variable "PYTORCH_VERSION" {
+  default = "2.9.1"
+}
+
+variable "TORCHVISION_VERSION" {
+  default = "0.24.1"
+}
+
+variable "TORCHAUDIO_VERSION" {
+  default = "2.9.1"
+}
+
+variable "MAX_TORCH_CUDA_VERSION" {
+  default = "12.6"
 }
 
 variable "HUGGINGFACE_ACCESS_TOKEN" {
@@ -36,7 +56,7 @@ variable "HUGGINGFACE_ACCESS_TOKEN" {
 }
 
 group "default" {
-  targets = ["base", "sdxl", "sd3", "flux1-schnell", "flux1-dev", "flux1-dev-fp8", "z-image-turbo", "base-cuda12-8-1"]
+  targets = ["base", "ltx23-av-tts", "sdxl", "sd3", "flux1-schnell", "flux1-dev", "flux1-dev-fp8", "z-image-turbo"]
 }
 
 target "base" {
@@ -50,9 +70,35 @@ target "base" {
     CUDA_VERSION_FOR_COMFY = "${CUDA_VERSION_FOR_COMFY}"
     ENABLE_PYTORCH_UPGRADE = "${ENABLE_PYTORCH_UPGRADE}"
     PYTORCH_INDEX_URL = "${PYTORCH_INDEX_URL}"
+    PIN_PYTORCH_CUDA = "${PIN_PYTORCH_CUDA}"
+    PYTORCH_VERSION = "${PYTORCH_VERSION}"
+    TORCHVISION_VERSION = "${TORCHVISION_VERSION}"
+    TORCHAUDIO_VERSION = "${TORCHAUDIO_VERSION}"
+    MAX_TORCH_CUDA_VERSION = "${MAX_TORCH_CUDA_VERSION}"
     MODEL_TYPE = "base"
   }
   tags = ["${DOCKERHUB_REPO}/${DOCKERHUB_IMG}:${RELEASE_VERSION}-base"]
+}
+
+target "ltx23-av-tts" {
+  context = "."
+  dockerfile = "Dockerfile"
+  target = "final"
+  platforms = ["linux/amd64"]
+  args = {
+    BASE_IMAGE = "nvidia/cuda:12.6.3-cudnn-runtime-ubuntu24.04"
+    COMFYUI_VERSION = "${COMFYUI_VERSION}"
+    CUDA_VERSION_FOR_COMFY = "12.6"
+    ENABLE_PYTORCH_UPGRADE = "false"
+    PYTORCH_INDEX_URL = "https://download.pytorch.org/whl/cu126"
+    PIN_PYTORCH_CUDA = "true"
+    PYTORCH_VERSION = "2.9.1"
+    TORCHVISION_VERSION = "0.24.1"
+    TORCHAUDIO_VERSION = "2.9.1"
+    MAX_TORCH_CUDA_VERSION = "12.6"
+    MODEL_TYPE = "ltx23-av-tts"
+  }
+  tags = ["${DOCKERHUB_REPO}/${DOCKERHUB_IMG}:${RELEASE_VERSION}-ltx23-av-tts"]
 }
 
 target "sdxl" {
@@ -65,6 +111,11 @@ target "sdxl" {
     CUDA_VERSION_FOR_COMFY = "${CUDA_VERSION_FOR_COMFY}"
     ENABLE_PYTORCH_UPGRADE = "${ENABLE_PYTORCH_UPGRADE}"
     PYTORCH_INDEX_URL = "${PYTORCH_INDEX_URL}"
+    PIN_PYTORCH_CUDA = "${PIN_PYTORCH_CUDA}"
+    PYTORCH_VERSION = "${PYTORCH_VERSION}"
+    TORCHVISION_VERSION = "${TORCHVISION_VERSION}"
+    TORCHAUDIO_VERSION = "${TORCHAUDIO_VERSION}"
+    MAX_TORCH_CUDA_VERSION = "${MAX_TORCH_CUDA_VERSION}"
     MODEL_TYPE = "sdxl"
   }
   tags = ["${DOCKERHUB_REPO}/${DOCKERHUB_IMG}:${RELEASE_VERSION}-sdxl"]
@@ -81,6 +132,11 @@ target "sd3" {
     CUDA_VERSION_FOR_COMFY = "${CUDA_VERSION_FOR_COMFY}"
     ENABLE_PYTORCH_UPGRADE = "${ENABLE_PYTORCH_UPGRADE}"
     PYTORCH_INDEX_URL = "${PYTORCH_INDEX_URL}"
+    PIN_PYTORCH_CUDA = "${PIN_PYTORCH_CUDA}"
+    PYTORCH_VERSION = "${PYTORCH_VERSION}"
+    TORCHVISION_VERSION = "${TORCHVISION_VERSION}"
+    TORCHAUDIO_VERSION = "${TORCHAUDIO_VERSION}"
+    MAX_TORCH_CUDA_VERSION = "${MAX_TORCH_CUDA_VERSION}"
     MODEL_TYPE = "sd3"
     HUGGINGFACE_ACCESS_TOKEN = "${HUGGINGFACE_ACCESS_TOKEN}"
   }
@@ -98,6 +154,11 @@ target "flux1-schnell" {
     CUDA_VERSION_FOR_COMFY = "${CUDA_VERSION_FOR_COMFY}"
     ENABLE_PYTORCH_UPGRADE = "${ENABLE_PYTORCH_UPGRADE}"
     PYTORCH_INDEX_URL = "${PYTORCH_INDEX_URL}"
+    PIN_PYTORCH_CUDA = "${PIN_PYTORCH_CUDA}"
+    PYTORCH_VERSION = "${PYTORCH_VERSION}"
+    TORCHVISION_VERSION = "${TORCHVISION_VERSION}"
+    TORCHAUDIO_VERSION = "${TORCHAUDIO_VERSION}"
+    MAX_TORCH_CUDA_VERSION = "${MAX_TORCH_CUDA_VERSION}"
     MODEL_TYPE = "flux1-schnell"
     HUGGINGFACE_ACCESS_TOKEN = "${HUGGINGFACE_ACCESS_TOKEN}"
   }
@@ -115,6 +176,11 @@ target "flux1-dev" {
     CUDA_VERSION_FOR_COMFY = "${CUDA_VERSION_FOR_COMFY}"
     ENABLE_PYTORCH_UPGRADE = "${ENABLE_PYTORCH_UPGRADE}"
     PYTORCH_INDEX_URL = "${PYTORCH_INDEX_URL}"
+    PIN_PYTORCH_CUDA = "${PIN_PYTORCH_CUDA}"
+    PYTORCH_VERSION = "${PYTORCH_VERSION}"
+    TORCHVISION_VERSION = "${TORCHVISION_VERSION}"
+    TORCHAUDIO_VERSION = "${TORCHAUDIO_VERSION}"
+    MAX_TORCH_CUDA_VERSION = "${MAX_TORCH_CUDA_VERSION}"
     MODEL_TYPE = "flux1-dev"
     HUGGINGFACE_ACCESS_TOKEN = "${HUGGINGFACE_ACCESS_TOKEN}"
   }
@@ -132,6 +198,11 @@ target "flux1-dev-fp8" {
     CUDA_VERSION_FOR_COMFY = "${CUDA_VERSION_FOR_COMFY}"
     ENABLE_PYTORCH_UPGRADE = "${ENABLE_PYTORCH_UPGRADE}"
     PYTORCH_INDEX_URL = "${PYTORCH_INDEX_URL}"
+    PIN_PYTORCH_CUDA = "${PIN_PYTORCH_CUDA}"
+    PYTORCH_VERSION = "${PYTORCH_VERSION}"
+    TORCHVISION_VERSION = "${TORCHVISION_VERSION}"
+    TORCHAUDIO_VERSION = "${TORCHAUDIO_VERSION}"
+    MAX_TORCH_CUDA_VERSION = "${MAX_TORCH_CUDA_VERSION}"
     MODEL_TYPE = "flux1-dev-fp8"
   }
   tags = ["${DOCKERHUB_REPO}/${DOCKERHUB_IMG}:${RELEASE_VERSION}-flux1-dev-fp8"]
@@ -148,26 +219,14 @@ target "z-image-turbo" {
     CUDA_VERSION_FOR_COMFY = "${CUDA_VERSION_FOR_COMFY}"
     ENABLE_PYTORCH_UPGRADE = "${ENABLE_PYTORCH_UPGRADE}"
     PYTORCH_INDEX_URL = "${PYTORCH_INDEX_URL}"
+    PIN_PYTORCH_CUDA = "${PIN_PYTORCH_CUDA}"
+    PYTORCH_VERSION = "${PYTORCH_VERSION}"
+    TORCHVISION_VERSION = "${TORCHVISION_VERSION}"
+    TORCHAUDIO_VERSION = "${TORCHAUDIO_VERSION}"
+    MAX_TORCH_CUDA_VERSION = "${MAX_TORCH_CUDA_VERSION}"
     MODEL_TYPE = "z-image-turbo"
     HUGGINGFACE_ACCESS_TOKEN = "${HUGGINGFACE_ACCESS_TOKEN}"
   }
   tags = ["${DOCKERHUB_REPO}/${DOCKERHUB_IMG}:${RELEASE_VERSION}-z-image-turbo"]
   inherits = ["base"]
 }
-
-target "base-cuda12-8-1" {
-  context = "."
-  dockerfile = "Dockerfile"
-  target = "base"
-  platforms = ["linux/amd64"]
-  args = {
-    BASE_IMAGE = "nvidia/cuda:12.8.1-cudnn-runtime-ubuntu24.04"
-    COMFYUI_VERSION = "${COMFYUI_VERSION}"
-    CUDA_VERSION_FOR_COMFY = ""
-    ENABLE_PYTORCH_UPGRADE = "true"
-    PYTORCH_INDEX_URL = "https://download.pytorch.org/whl/cu128"
-    MODEL_TYPE = "base"
-  }
-  tags = ["${DOCKERHUB_REPO}/${DOCKERHUB_IMG}:${RELEASE_VERSION}-base-cuda12.8.1"]
-}
-

@@ -7,6 +7,10 @@ LTX-2.3 image/audio-to-video workflow, and returns the MP4 as base64.
 
 This repository is derived from `runpod-workers/worker-comfyui`.
 
+Deploy the Docker image built from the `ltx23-av-tts` bake target. That target
+pins PyTorch to CUDA 12.6 wheels and bakes the LTX-2.3 models needed by the
+bundled AV/TTS workflow.
+
 ## AV/TTS request
 
 ```json
@@ -96,6 +100,10 @@ This project allows you to run ComfyUI workflows as a serverless API endpoint on
 
 These images are available on Docker Hub under `runpod/worker-comfyui`:
 
+- **`<repo>/<image>:<version>-ltx23-av-tts`**: Custom image for this project.
+  Includes the AV/TTS handler, bundled LTX-2.3 workflow, LTX-2.3 FP8 model,
+  Gemma text encoder, distilled LoRA, and LTX spatial upscaler. This is the
+  image to deploy for Qwen3-TTS-driven image-to-video.
 - **`runpod/worker-comfyui:<version>-base`**: Clean ComfyUI install with no models.
 - **`runpod/worker-comfyui:<version>-flux1-schnell`**: Includes checkpoint, text encoders, and VAE for [FLUX.1 schnell](https://huggingface.co/black-forest-labs/FLUX.1-schnell).
 - **`runpod/worker-comfyui:<version>-flux1-dev`**: Includes checkpoint, text encoders, and VAE for [FLUX.1 dev](https://huggingface.co/black-forest-labs/FLUX.1-dev).

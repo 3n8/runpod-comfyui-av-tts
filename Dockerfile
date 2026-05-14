@@ -8,7 +8,12 @@ FROM ${BASE_IMAGE} AS base
 ARG COMFYUI_VERSION=latest
 ARG CUDA_VERSION_FOR_COMFY
 ARG ENABLE_PYTORCH_UPGRADE=false
-ARG PYTORCH_INDEX_URL
+ARG PYTORCH_INDEX_URL=https://download.pytorch.org/whl/cu126
+ARG PIN_PYTORCH_CUDA=true
+ARG PYTORCH_VERSION=2.9.1
+ARG TORCHVISION_VERSION=0.24.1
+ARG TORCHAUDIO_VERSION=2.9.1
+ARG MAX_TORCH_CUDA_VERSION=12.6
 
 # Prevents prompts from packages asking for user input during installation
 ENV DEBIAN_FRONTEND=noninteractive
@@ -21,6 +26,7 @@ ENV CMAKE_BUILD_PARALLEL_LEVEL=8
 # NVIDIA memory allocator setting commonly used to reduce fragmentation on
 # large video workflows.
 ENV PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True
+ENV MAX_TORCH_CUDA_VERSION=${MAX_TORCH_CUDA_VERSION}
 
 # Install Python, git and other necessary tools
 RUN apt-get update && apt-get install -y \
@@ -64,6 +70,47 @@ RUN if [ -n "${CUDA_VERSION_FOR_COMFY}" ]; then \
 RUN if [ "$ENABLE_PYTORCH_UPGRADE" = "true" ]; then \
       uv pip install --force-reinstall torch torchvision torchaudio --index-url ${PYTORCH_INDEX_URL}; \
     fi
+
+# Pin PyTorch to CUDA 12.6 wheels. ComfyUI's installer may otherwise select a
+# newer CUDA runtime than some RunPod A100 hosts can support.
+RUN if [ "$PIN_PYTORCH_CUDA" = "true" ]; then \
+      uv pip install --force-reinstall \
+        torch==${PYTORCH_VERSION} \
+        torchvision==${TORCHVISION_VERSION} \
+        torchaudio==${TORCHAUDIO_VERSION} \
+        --index-url ${PYTORCH_INDEX_URL}; \
+    fi
+
+# RunPod currently places some A100 workers on hosts exposing CUDA driver
+# capability 12.6. Fail the image build if ComfyUI/pip selected a newer
+# PyTorch CUDA runtime, because that would make the worker exit before it can
+# process jobs.
+RUN python - <<'PY'
+import os
+import sys
+
+import torch
+
+max_cuda = os.environ.get("MAX_TORCH_CUDA_VERSION", "12.6")
+torch_cuda = torch.version.cuda
+
+if not torch_cuda:
+    print("PyTorch is not CUDA-enabled", file=sys.stderr)
+    sys.exit(1)
+
+def version_tuple(value):
+    return tuple(int(part) for part in value.split(".")[:2])
+
+if version_tuple(torch_cuda) > version_tuple(max_cuda):
+    print(
+        f"PyTorch CUDA {torch_cuda} is newer than allowed {max_cuda}; "
+        "this image will not run on CUDA 12.6 RunPod hosts.",
+        file=sys.stderr,
+    )
+    sys.exit(1)
+
+print(f"PyTorch CUDA {torch_cuda} is compatible with max {max_cuda}")
+PY
 
 # Change working directory to ComfyUI
 WORKDIR /comfyui
