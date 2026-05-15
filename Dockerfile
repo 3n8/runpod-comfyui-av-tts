@@ -99,7 +99,7 @@ ADD src/extra_model_paths.yaml ./
 WORKDIR /
 
 # Install Python runtime dependencies for the handler
-RUN uv pip install runpod requests websocket-client
+RUN uv pip install runpod requests websocket-client sqlalchemy
 
 # Install custom nodes needed by the bundled AV/TTS workflow.
 # Current ComfyUI carries the LTX-2.3 core nodes, but keeping the official
