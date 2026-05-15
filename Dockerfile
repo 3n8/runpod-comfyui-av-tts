@@ -26,6 +26,8 @@ ENV CMAKE_BUILD_PARALLEL_LEVEL=8
 # NVIDIA memory allocator setting commonly used to reduce fragmentation on
 # large video workflows.
 ENV PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True
+ENV UV_HTTP_TIMEOUT=300
+ENV UV_HTTP_RETRIES=10
 ENV MAX_TORCH_CUDA_VERSION=${MAX_TORCH_CUDA_VERSION}
 
 # Install Python, git and other necessary tools
@@ -85,32 +87,7 @@ RUN if [ "$PIN_PYTORCH_CUDA" = "true" ]; then \
 # capability 12.6. Fail the image build if ComfyUI/pip selected a newer
 # PyTorch CUDA runtime, because that would make the worker exit before it can
 # process jobs.
-RUN python - <<'PY'
-import os
-import sys
-
-import torch
-
-max_cuda = os.environ.get("MAX_TORCH_CUDA_VERSION", "12.6")
-torch_cuda = torch.version.cuda
-
-if not torch_cuda:
-    print("PyTorch is not CUDA-enabled", file=sys.stderr)
-    sys.exit(1)
-
-def version_tuple(value):
-    return tuple(int(part) for part in value.split(".")[:2])
-
-if version_tuple(torch_cuda) > version_tuple(max_cuda):
-    print(
-        f"PyTorch CUDA {torch_cuda} is newer than allowed {max_cuda}; "
-        "this image will not run on CUDA 12.6 RunPod hosts.",
-        file=sys.stderr,
-    )
-    sys.exit(1)
-
-print(f"PyTorch CUDA {torch_cuda} is compatible with max {max_cuda}")
-PY
+RUN python -c "import os, sys, torch; max_cuda = os.environ.get('MAX_TORCH_CUDA_VERSION', '12.6'); torch_cuda = torch.version.cuda; parse = lambda value: tuple(int(part) for part in value.split('.')[:2]); sys.exit('PyTorch is not CUDA-enabled') if not torch_cuda else None; sys.exit(f'PyTorch CUDA {torch_cuda} is newer than allowed {max_cuda}; this image will not run on CUDA 12.6 RunPod hosts.') if parse(torch_cuda) > parse(max_cuda) else print(f'PyTorch CUDA {torch_cuda} is compatible with max {max_cuda}')"
 
 # Change working directory to ComfyUI
 WORKDIR /comfyui
