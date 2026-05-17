@@ -68,11 +68,6 @@ RUN if [ -n "${CUDA_VERSION_FOR_COMFY}" ]; then \
       /usr/bin/yes | comfy --workspace /comfyui install --version "${COMFYUI_VERSION}" --nvidia; \
     fi
 
-# comfy-cli may install ComfyUI requirements into /comfyui/.venv. The worker
-# starts with /opt/venv on PATH, so install the checked-out ComfyUI requirements
-# into the runtime venv explicitly instead of patching missing modules one by one.
-RUN uv pip install --python /opt/venv/bin/python -r /comfyui/requirements.txt
-
 # Upgrade PyTorch if needed (for newer CUDA versions)
 RUN if [ "$ENABLE_PYTORCH_UPGRADE" = "true" ]; then \
       uv pip install --force-reinstall torch torchvision torchaudio --index-url ${PYTORCH_INDEX_URL}; \
@@ -87,6 +82,15 @@ RUN if [ "$PIN_PYTORCH_CUDA" = "true" ]; then \
         torchaudio==${TORCHAUDIO_VERSION} \
         --index-url ${PYTORCH_INDEX_URL}; \
     fi
+
+# comfy-cli may install ComfyUI requirements into /comfyui/.venv. The worker
+# starts with /opt/venv on PATH, so install the checked-out ComfyUI requirements
+# into the runtime venv explicitly after the CUDA 12.6 torch pin is in place.
+# Torch packages are installed above from the cu126 index and filtered here so
+# the generic requirements install cannot pull a newer CUDA stack.
+RUN grep -Ev '^(torch|torchvision|torchaudio)([<>=~! ].*)?$' /comfyui/requirements.txt > /tmp/comfyui-runtime-requirements.txt \
+    && uv pip install --python /opt/venv/bin/python -r /tmp/comfyui-runtime-requirements.txt \
+    && rm /tmp/comfyui-runtime-requirements.txt
 
 # RunPod currently places some A100 workers on hosts exposing CUDA driver
 # capability 12.6. Fail the image build if ComfyUI/pip selected a newer
