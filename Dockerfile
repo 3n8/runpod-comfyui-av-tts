@@ -5,7 +5,7 @@ ARG BASE_IMAGE=nvidia/cuda:12.6.3-cudnn-runtime-ubuntu24.04
 FROM ${BASE_IMAGE} AS base
 
 # Build arguments for this stage with sensible defaults for standalone builds
-ARG COMFYUI_VERSION=latest
+ARG COMFYUI_VERSION=v0.21.1
 ARG CUDA_VERSION_FOR_COMFY
 ARG ENABLE_PYTORCH_UPGRADE=false
 ARG PYTORCH_INDEX_URL=https://download.pytorch.org/whl/cu126
@@ -68,6 +68,11 @@ RUN if [ -n "${CUDA_VERSION_FOR_COMFY}" ]; then \
       /usr/bin/yes | comfy --workspace /comfyui install --version "${COMFYUI_VERSION}" --nvidia; \
     fi
 
+# comfy-cli may install ComfyUI requirements into /comfyui/.venv. The worker
+# starts with /opt/venv on PATH, so install the checked-out ComfyUI requirements
+# into the runtime venv explicitly instead of patching missing modules one by one.
+RUN uv pip install --python /opt/venv/bin/python -r /comfyui/requirements.txt
+
 # Upgrade PyTorch if needed (for newer CUDA versions)
 RUN if [ "$ENABLE_PYTORCH_UPGRADE" = "true" ]; then \
       uv pip install --force-reinstall torch torchvision torchaudio --index-url ${PYTORCH_INDEX_URL}; \
@@ -99,38 +104,27 @@ ADD src/extra_model_paths.yaml ./
 WORKDIR /
 
 # Install Python runtime dependencies for the handler
-RUN uv pip install --python /opt/venv/bin/python runpod requests websocket-client sqlalchemy comfy-aimdo scipy torchsde av
+RUN uv pip install --python /opt/venv/bin/python runpod requests websocket-client
+
+RUN PYTHONPATH=/comfyui python -c "import av, scipy, sqlalchemy, torchsde, comfy_aimdo; from comfy_api.version_list import supported_versions; print(f'ComfyUI runtime imports OK: {len(supported_versions)} API version(s)')"
+
+# Stage 2: Install custom nodes
+FROM base AS custom_nodes
 
 # Install custom nodes needed by the bundled AV/TTS workflow.
 # Current ComfyUI carries the LTX-2.3 core nodes, but keeping the official
 # Lightricks node pack installed makes the image less fragile across workflow
 # revisions. VideoHelperSuite provides VHS_LoadAudio for loading generated TTS.
 RUN git clone --depth=1 https://github.com/Lightricks/ComfyUI-LTXVideo.git /comfyui/custom_nodes/ComfyUI-LTXVideo \
-    && uv pip install -r /comfyui/custom_nodes/ComfyUI-LTXVideo/requirements.txt \
+    && uv pip install --python /opt/venv/bin/python -r /comfyui/custom_nodes/ComfyUI-LTXVideo/requirements.txt \
     && git clone --depth=1 https://github.com/Kosinkadink/ComfyUI-VideoHelperSuite.git /comfyui/custom_nodes/ComfyUI-VideoHelperSuite \
-    && uv pip install -r /comfyui/custom_nodes/ComfyUI-VideoHelperSuite/requirements.txt
-
-# Add application code and scripts
-ADD src/start.sh src/network_volume.py handler.py test_input.json ./
-RUN chmod +x /start.sh
-COPY workflows /workflows
-
-# Add script to install custom nodes
-COPY scripts/comfy-node-install.sh /usr/local/bin/comfy-node-install
-RUN chmod +x /usr/local/bin/comfy-node-install
+    && uv pip install --python /opt/venv/bin/python -r /comfyui/custom_nodes/ComfyUI-VideoHelperSuite/requirements.txt
 
 # Prevent pip from asking for confirmation during uninstall steps in custom nodes
 ENV PIP_NO_INPUT=1
 
-# Copy helper script to switch Manager network mode at container start
-COPY scripts/comfy-manager-set-mode.sh /usr/local/bin/comfy-manager-set-mode
-RUN chmod +x /usr/local/bin/comfy-manager-set-mode
-
-# Set the default command to run when starting the container
-CMD ["/start.sh"]
-
-# Stage 2: Download models
-FROM base AS downloader
+# Stage 3: Download models
+FROM custom_nodes AS downloader
 
 ARG HUGGINGFACE_ACCESS_TOKEN
 # Set default model type if none is provided
@@ -186,10 +180,28 @@ RUN if [ "$MODEL_TYPE" = "z-image-turbo" ]; then \
       wget -q --header="Authorization: Bearer ${HUGGINGFACE_ACCESS_TOKEN}" -O models/model_patches/Z-Image-Turbo-Fun-Controlnet-Union.safetensors https://huggingface.co/alibaba-pai/Z-Image-Turbo-Fun-Controlnet-Union/resolve/main/Z-Image-Turbo-Fun-Controlnet-Union.safetensors; \
     fi
 
-# Stage 3: Final image
+# Stage 4: Final image
 #
 # Keep final as the downloader filesystem instead of copying /comfyui/models
 # into a fresh base stage. The LTX target bakes roughly 47GB of models; copying
 # that tree into another stage creates a second huge layer and makes RunPod's
 # cache export slow enough to hit the 30 minute build timeout.
 FROM downloader AS final
+
+# Add application code and scripts last so handler/workflow edits do not
+# invalidate the expensive custom-node and model layers.
+WORKDIR /
+ADD src/start.sh src/network_volume.py handler.py test_input.json ./
+RUN chmod +x /start.sh
+COPY workflows /workflows
+
+# Add script to install custom nodes
+COPY scripts/comfy-node-install.sh /usr/local/bin/comfy-node-install
+RUN chmod +x /usr/local/bin/comfy-node-install
+
+# Copy helper script to switch Manager network mode at container start
+COPY scripts/comfy-manager-set-mode.sh /usr/local/bin/comfy-manager-set-mode
+RUN chmod +x /usr/local/bin/comfy-manager-set-mode
+
+# Set the default command to run when starting the container
+CMD ["/start.sh"]

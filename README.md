@@ -8,8 +8,8 @@ LTX-2.3 image/audio-to-video workflow, and returns the MP4 as base64.
 This repository is derived from `runpod-workers/worker-comfyui`.
 
 Deploy the Docker image built from the `ltx23-av-tts` bake target. That target
-pins PyTorch to CUDA 12.6 wheels and bakes the LTX-2.3 models needed by the
-bundled AV/TTS workflow.
+pins ComfyUI to `v0.21.1`, pins PyTorch to CUDA 12.6 wheels, and bakes the
+LTX-2.3 models needed by the bundled AV/TTS workflow.
 
 ## AV/TTS request
 
